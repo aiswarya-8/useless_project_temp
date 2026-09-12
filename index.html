@@ -1,1 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USELESS MAZE - Neon Arcade Labyrinth</title>
+  <meta name="description"
+    content="A visually stunning neon arcade procedural maze game. Navigate through glowing digital corridors in USELESS MAZE.">
+
+  <!-- Google Fonts: Orbitron for Sci-Fi / Arcade Header & Outfit for modern UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Outfit:wght@300;400;600;700&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Ambient Dynamic Background Canvas -->
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+  <!-- Ambient Glow Vignette / Scanline Overlay -->
+  <div class="overlay-scanlines" aria-hidden="true"></div>
+
+  <!-- Main Game Container -->
+  <div class="app-wrapper">
+    <!-- Top Header -->
+    <header class="game-header">
+      <div class="header-badge">
+        <span class="badge-dot"></span>
+        <span class="badge-text">PROCEDURAL PROTOCOL v1.0</span>
+      </div>
+      <div style="color: white; background: none; border: none; padding: 0; font-weight: normal;">
+        USELESS MAZE
+      </div>
+      <p class="header-subtitle">Navigate the Golden Key through the neon labyrinth to unlock the fleeing exit door. <strong>Warning:</strong> A 1-second lag sends the key back to its previous position!</p>
+    </header>
+
+    <!-- Game Card & Controls -->
+    <main class="game-card">
+      <!-- HUD / Status Bar -->
+      <div class="hud-bar">
+        <div class="hud-item" id="hud-timer-container">
+          <span class="hud-label">TIME</span>
+          <span class="hud-value" id="hud-timer">00:00</span>
+        </div>
+        <div class="hud-item" id="hud-moves-container">
+          <span class="hud-label">MOVES</span>
+          <span class="hud-value" id="hud-moves">0</span>
+        </div>
+        <div class="hud-item hud-lag-container" id="hud-lag-container">
+          <span class="hud-label">LAG TIMER (1.0s)</span>
+          <div class="lag-gauge">
+            <div class="lag-gauge-track">
+              <div class="lag-gauge-bar" id="lag-meter-bar"></div>
+            </div>
+            <span class="hud-value lag-countdown" id="hud-lag-timer">1.0s</span>
+          </div>
+        </div>
+        <div class="hud-item" id="hud-rewinds-container">
+          <span class="hud-label">LAG REWINDS</span>
+          <span class="hud-value lag-glow" id="hud-rewinds">0</span>
+        </div>
+        <div class="hud-item" id="hud-key-container">
+          <span class="hud-label">KEY STATUS</span>
+          <span class="hud-value hud-key-status acquired" id="hud-key">🗝️ ACTIVE</span>
+        </div>
+        <div class="hud-item" id="hud-escapes-container">
+          <span class="hud-label">DOOR TROLLS</span>
+          <span class="hud-value troll-glow" id="hud-escapes">0</span>
+        </div>
+        <div class="hud-item" id="hud-level-container">
+          <span class="hud-label">DIFFICULTY</span>
+          <select id="difficulty-select" class="hud-select" aria-label="Maze Difficulty">
+            <option value="easy">Easy (11×11)</option>
+            <option value="medium" selected>Normal (17×17)</option>
+            <option value="hard">Hard (25×25)</option>
+            <option value="insane">Extreme (33×33)</option>
+          </select>
+        </div>
+        <div class="hud-item" id="hud-mode-container">
+          <span class="hud-label">TROLL MODE</span>
+          <select id="mode-select" class="hud-select" aria-label="Troll Mode">
+            <option value="endless" selected>Infinite Escapes</option>
+            <option value="catchable">Catchable (3 Escapes)</option>
+            <option value="troll-5">Endurance (5 Escapes)</option>
+          </select>
+        </div>
+        <div class="hud-actions">
+          <button id="btn-audio" class="action-btn icon-btn" title="Toggle Sound (M)" aria-label="Toggle Sound">
+            <svg id="icon-sound-on" class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <svg id="icon-sound-off" class="btn-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          </button>
+          <button id="btn-new-game" class="action-btn primary-btn">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+            </svg>
+            <span>NEW MAZE</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Playable Maze Canvas Viewport -->
+      <div class="canvas-wrapper">
+        <canvas id="maze-canvas" width="600" height="600" aria-label="Playable Maze Grid"></canvas>
+
+        <!-- Floating Troll Reaction Alert -->
+        <div id="troll-toast" class="troll-toast hidden" aria-live="polite">
+          <div class="troll-toast-icon">🏃‍♂️💨</div>
+          <div class="troll-toast-body">
+            <span class="troll-toast-title" id="troll-toast-title">TOO SLOW!</span>
+            <span class="troll-toast-sub" id="troll-toast-sub">The door relocated to the furthest corridor!</span>
+          </div>
+        </div>
+
+        <!-- Floating Lag Penalty Alert -->
+        <div id="lag-toast" class="lag-toast hidden" aria-live="polite">
+          <div class="lag-toast-icon">⚡⏱️</div>
+          <div class="lag-toast-body">
+            <span class="lag-toast-title" id="lag-toast-title">1s LAG DETECTED!</span>
+            <span class="lag-toast-sub" id="lag-toast-sub">Hesitation penalty! Key rewound to previous position!</span>
+          </div>
+        </div>
+
+        <!-- Key Acquired Toast -->
+        <div id="key-toast" class="key-toast hidden" aria-live="polite">
+          <div class="key-toast-icon">🗝️</div>
+          <div class="key-toast-text">KEY ACQUIRED! NOW FIND THE DOOR</div>
+        </div>
+
+        <!-- Useless & Funny Commentary Big Pop-up -->
+        <div id="useless-popup" class="useless-popup hidden" aria-live="polite">
+          <div class="useless-popup-glow" id="useless-popup-glow"></div>
+          <button class="useless-popup-close" id="useless-popup-close" aria-label="Dismiss">&times;</button>
+          <div class="useless-popup-emoji" id="useless-popup-emoji">🥱🛋️</div>
+          <div class="useless-popup-content">
+            <div class="useless-popup-tag" id="useless-popup-tag">✦ USELESS COMMENTARY ✦</div>
+            <h3 class="useless-popup-title" id="useless-popup-title">AREN'T YOU EXHAUSTED?</h3>
+            <p class="useless-popup-sub" id="useless-popup-sub">Your couch misses you deeply.</p>
+          </div>
+          <div class="useless-popup-bar">
+            <div class="useless-popup-progress" id="useless-popup-progress"></div>
+          </div>
+        </div>
+
+        <!-- Victory Overlay Modal -->
+        <div id="victory-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+          <div class="modal-content">
+            <div class="victory-icon">✦</div>
+            <h2 class="victory-title">DOOR UNLOCKED!</h2>
+            <p class="victory-desc">The Golden Key caught and unlocked the escaping exit!</p>
+            <div class="victory-stats">
+              <div class="stat-box">
+                <span class="stat-label">Final Time</span>
+                <span class="stat-val" id="win-time">00:00</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Total Steps</span>
+                <span class="stat-val" id="win-steps">0</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Door Escapes</span>
+                <span class="stat-val" id="win-escapes">0</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-label">Lag Rewinds</span>
+                <span class="stat-val" id="win-rewinds">0</span>
+              </div>
+            </div>
+            <button id="btn-play-again" class="action-btn primary-btn pulse-glow">
+              NEXT LABYRINTH
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Controls & Hints -->
+      <div class="controls-hint">
+        <div class="hint-keys">
+          <span class="key-pill" data-key="w">W</span>
+          <span class="key-pill" data-key="a">A</span>
+          <span class="key-pill" data-key="s">S</span>
+          <span class="key-pill" data-key="d">D</span>
+          <span class="hint-separator">or</span>
+          <span class="key-pill" data-key="arrowup">↑</span>
+          <span class="key-pill" data-key="arrowleft">←</span>
+          <span class="key-pill" data-key="arrowdown">↓</span>
+          <span class="key-pill" data-key="arrowright">→</span>
+          <span class="hint-text">to Move the Key</span>
+        </div>
+
+        <!-- Mobile Touch Virtual D-Pad -->
+        <div class="touch-controls" id="touch-controls">
+          <button class="dpad-btn dpad-up" data-dir="up" aria-label="Up">▲</button>
+          <div class="dpad-mid">
+            <button class="dpad-btn dpad-left" data-dir="left" aria-label="Left">◀</button>
+            <div class="dpad-center"></div>
+            <button class="dpad-btn dpad-right" data-dir="right" aria-label="Right">▶</button>
+          </div>
+          <button class="dpad-btn dpad-down" data-dir="down" aria-label="Down">▼</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="game-footer">
+      <p>USELESS MAZE &bull; Procedurally Generated Neon Experience &bull; Responsive HTML5 Canvas</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
