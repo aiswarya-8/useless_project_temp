@@ -26,7 +26,7 @@
 ## Technical Details
 ### Technologies/Components Used
 For Software:
-- [html|css|javascript|json]
+- [html5|css3|javascript]
 - [Antigravity]
 
 
