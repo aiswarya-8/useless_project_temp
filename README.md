@@ -67,6 +67,10 @@ once the key reaches next to the exit the exit moves far away*
 https://drive.google.com/drive/home?dmr=1&ec=wgc-drive-%5Bmodule%5D-goto
 
 
+here is the game url so that you can just play it
+aiswarya-8.github.io/useless_project_temp/
+
+
 ---
 Made with ❤️ at TinkerHub Useless Projects 
 
